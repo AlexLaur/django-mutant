@@ -10,8 +10,9 @@ from ....models import ModelDefinition
 from ....utils import clear_opts_related_cache
 
 
-def mutable_model_prepared(signal, sender, definition, existing_model_class,
-                           **kwargs):
+def mutable_model_prepared(
+    signal, sender, definition, existing_model_class, **kwargs
+):
     """
     Make sure all related model class are created and marked as dependency
     when a mutable model class is prepared
@@ -30,13 +31,15 @@ def mutable_model_prepared(signal, sender, definition, existing_model_class,
             remote_field_model = get_remote_field_model(field)
             if not isinstance(remote_field_model, string_types):
                 referenced_models.add(remote_field_model)
-                if (issubclass(remote_field_model, MutableModel) and
-                        remote_field_model._definition != sender._definition):
+                if (
+                    issubclass(remote_field_model, MutableModel)
+                    and remote_field_model._definition != sender._definition
+                ):
                     remote_field_model._dependencies.add(sender._definition)
     # Mark all model referring to this one as dependencies
     related_model_defs = ModelDefinition.objects.filter(
-        Q(fielddefinitions__foreignkeydefinition__to=definition) |
-        Q(fielddefinitions__manytomanyfielddefinition__to=definition)
+        Q(fielddefinitions__foreignkeydefinition__to=definition)
+        | Q(fielddefinitions__manytomanyfielddefinition__to=definition)
     ).distinct()
     for model_def in related_model_defs:
         if model_def != definition:

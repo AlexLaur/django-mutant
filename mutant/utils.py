@@ -52,6 +52,8 @@ def _string_format(string, *args, **kwargs):
         return string % tuple(force_text(s) for s in args)
     elif kwargs:
         return string % dict((k, force_text(v)) for k, v in kwargs.items())
+
+
 lazy_string_format = lazy(_string_format, six.text_type)
 
 
@@ -86,10 +88,7 @@ def remove_from_app_cache(model_class, quiet=False):
 
 
 def get_foward_fields(opts):
-    return chain(
-        opts.fields,
-        opts.many_to_many
-    )
+    return chain(opts.fields, opts.many_to_many)
 
 
 def get_reverse_fields(opts):
@@ -100,7 +99,8 @@ def clear_opts_related_cache(model_class):
     opts = model_class._meta
     children = [
         related_object.related_model
-        for related_object in opts.__dict__.get('related_objects', []) if related_object.parent_link
+        for related_object in opts.__dict__.get("related_objects", [])
+        if related_object.parent_link
     ]
     opts._expire_cache()
     for child in children:
@@ -121,7 +121,10 @@ def unreference_model(model):
                 o2o = isinstance(field, models.OneToOneField)
                 if not rel_is_hidden or o2o:
                     try:
-                        delattr(remote_field_model, get_remote_field(field).get_accessor_name())
+                        delattr(
+                            remote_field_model,
+                            get_remote_field(field).get_accessor_name(),
+                        )
                     except AttributeError:
                         # Hidden related names are not respected for o2o
                         # thus a tenant models with a o2o pointing to
@@ -143,7 +146,10 @@ def _app_cache_deepcopy(obj):
     if isinstance(obj, defaultdict):
         return deepcopy(obj)
     elif isinstance(obj, dict):
-        return type(obj)((_app_cache_deepcopy(key), _app_cache_deepcopy(val)) for key, val in obj.items())
+        return type(obj)(
+            (_app_cache_deepcopy(key), _app_cache_deepcopy(val))
+            for key, val in obj.items()
+        )
     elif isinstance(obj, list):
         return list(_app_cache_deepcopy(val) for val in obj)
     elif isinstance(obj, AppConfig):
@@ -173,15 +179,18 @@ def app_cache_restorer():
             apps.clear_cache()
 
 
-group_item_getter = itemgetter('group')
+group_item_getter = itemgetter("group")
 
 
 def choices_from_dict(choices):
     for grp, choices in groupby(choices, key=group_item_getter):
         if grp is None:
             for choice in choices:
-                yield (choice['value'], choice['label'])
+                yield (choice["value"], choice["label"])
         else:
-            yield (grp, tuple(
-                (choice['value'], choice['label']) for choice in choices)
+            yield (
+                grp,
+                tuple(
+                    (choice["value"], choice["label"]) for choice in choices
+                ),
             )

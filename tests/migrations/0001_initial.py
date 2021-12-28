@@ -9,65 +9,102 @@ from mutant.db.fields.generic import FieldDefinitionTypeField
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mutant', '0001_initial'),
-        ('contenttypes', '0001_initial'),
+        ("mutant", "0001_initial"),
+        ("contenttypes", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='ConcreteModel',
+            name="ConcreteModel",
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('concrete_model_field', models.NullBooleanField()),
+                (
+                    "id",
+                    models.AutoField(
+                        verbose_name="ID",
+                        serialize=False,
+                        auto_created=True,
+                        primary_key=True,
+                    ),
+                ),
+                ("concrete_model_field", models.NullBooleanField()),
             ],
-            options={
-            },
+            options={},
             bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name='CustomFieldDefinition',
+            name="CustomFieldDefinition",
             fields=[
-                ('fielddefinition_ptr', models.OneToOneField(
-                    to='mutant.FieldDefinition', on_delete=models.CASCADE, parent_link=True, auto_created=True,
-                    primary_key=True, serialize=False
-                )),
+                (
+                    "fielddefinition_ptr",
+                    models.OneToOneField(
+                        to="mutant.FieldDefinition",
+                        on_delete=models.CASCADE,
+                        parent_link=True,
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
             ],
-            options={
-            },
-            bases=('mutant.fielddefinition',),
+            options={},
+            bases=("mutant.fielddefinition",),
         ),
         migrations.CreateModel(
-            name='FieldDefinitionModel',
+            name="FieldDefinitionModel",
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('field_type', FieldDefinitionTypeField()),
+                (
+                    "id",
+                    models.AutoField(
+                        verbose_name="ID",
+                        serialize=False,
+                        auto_created=True,
+                        primary_key=True,
+                    ),
+                ),
+                ("field_type", FieldDefinitionTypeField()),
             ],
-            options={
-            },
+            options={},
             bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name='ModelWithModelDefinitionReference',
+            name="ModelWithModelDefinitionReference",
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('model_def', models.OneToOneField(
-                    to='mutant.ModelDefinition', on_delete=models.CASCADE, related_name='+'
-                )),
-                ('nullable_model_def', models.ForeignKey(
-                    to='mutant.ModelDefinition', on_delete=models.SET_NULL, related_name='+', null=True
-                )),
+                (
+                    "id",
+                    models.AutoField(
+                        verbose_name="ID",
+                        serialize=False,
+                        auto_created=True,
+                        primary_key=True,
+                    ),
+                ),
+                (
+                    "model_def",
+                    models.OneToOneField(
+                        to="mutant.ModelDefinition",
+                        on_delete=models.CASCADE,
+                        related_name="+",
+                    ),
+                ),
+                (
+                    "nullable_model_def",
+                    models.ForeignKey(
+                        to="mutant.ModelDefinition",
+                        on_delete=models.SET_NULL,
+                        related_name="+",
+                        null=True,
+                    ),
+                ),
             ],
-            options={
-            },
+            options={},
             bases=(models.Model,),
         ),
         migrations.CreateModel(
-            name='ProxyModel',
-            fields=[
-            ],
+            name="ProxyModel",
+            fields=[],
             options={
-                'proxy': True,
+                "proxy": True,
             },
-            bases=('tests.concretemodel',),
+            bases=("tests.concretemodel",),
         ),
     ]

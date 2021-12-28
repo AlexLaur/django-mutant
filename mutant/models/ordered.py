@@ -9,15 +9,17 @@ class OrderedModel(models.Model):
 
     class Meta:
         abstract = True
-        ordering = ['order']
+        ordering = ["order"]
 
     def get_ordering_queryset(self):
         return self.__class__._default_manager.all()
 
     def save(self, *args, **kwargs):
         if self.order is None:
-            max_order = self.get_ordering_queryset().aggregate(
-                Max('order')
-            ).get('order__max')
+            max_order = (
+                self.get_ordering_queryset()
+                .aggregate(Max("order"))
+                .get("order__max")
+            )
             self.order = 0 if max_order is None else max_order + 1
         return super(OrderedModel, self).save(*args, **kwargs)

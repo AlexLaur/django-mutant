@@ -21,7 +21,9 @@ class BaseEngine(Thread):
         self.initialize = initialize
         self.callback = callback
         self.ready = False
-        super(BaseEngine, self).__init__(name="%s.%s" % (self.__module__, self.__class__.__name__))
+        super(BaseEngine, self).__init__(
+            name="%s.%s" % (self.__module__, self.__class__.__name__)
+        )
 
     def _initialize(self):
         self.initialize()
@@ -35,8 +37,15 @@ class BaseEngine(Thread):
 
 
 class Redis(BaseEngine):
-    def __init__(self, initialize, callback, channel='mutant-state',
-                 socket_timeout=60*10, socket_keepalive=True, **options):
+    def __init__(
+        self,
+        initialize,
+        callback,
+        channel="mutant-state",
+        socket_timeout=60 * 10,
+        socket_keepalive=True,
+        **options
+    ):
         super(Redis, self).__init__(initialize, callback)
         self.redis = redis.StrictRedis(
             socket_timeout=socket_timeout,
@@ -52,8 +61,8 @@ class Redis(BaseEngine):
     def _run(self):
         self._initialize()
         for event in self.pubsub.listen():
-            if event['type'] == 'message':
-                args = json.loads(force_str(event['data']))
+            if event["type"] == "message":
+                args = json.loads(force_str(event["data"]))
                 self.callback(*args)
 
     def _reconnect(self):
@@ -61,14 +70,16 @@ class Redis(BaseEngine):
         if connection:
             connection.disconnect()
         while True:
-            logger.info('Attempting to reconnect.')
+            logger.info("Attempting to reconnect.")
             try:
                 connection.connect()
             except redis.ConnectionError:
-                logger.exception('Failed to reconnect, will re-attempt in 5 seconds.')
+                logger.exception(
+                    "Failed to reconnect, will re-attempt in 5 seconds."
+                )
                 time.sleep(5)
             else:
-                logger.info('Successfully reconnected.')
+                logger.info("Successfully reconnected.")
                 break
 
     def run(self):
@@ -77,11 +88,11 @@ class Redis(BaseEngine):
             self._run()
         except redis.TimeoutError:
             if math.ceil(time.time() - start) < self.socket_timeout:
-                logger.warning('Unexpected connection timeout.')
+                logger.warning("Unexpected connection timeout.")
             self._reconnect()
             self.run()
         except redis.ConnectionError:
-            logger.warning('Connection error.')
+            logger.warning("Connection error.")
             self._reconnect()
             self.run()
 

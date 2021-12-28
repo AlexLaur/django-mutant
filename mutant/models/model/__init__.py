@@ -37,17 +37,16 @@ def _model_class_from_pk(definition_cls, definition_pk):
 
 
 class MutableModelProxy(object):
-    __slots__ = ['model', 'refreshing', '__weakref__']
+    __slots__ = ["model", "refreshing", "__weakref__"]
 
-    proxied_methods = [
-        '__setattr__', '__delattr__', '__hash__', '__str__'
-    ]
+    proxied_methods = ["__setattr__", "__delattr__", "__hash__", "__str__"]
 
     @classmethod
     def method_factory(cls, name):
         def method(self, *args, **kwargs):
             model = self.__get__()
             return getattr(model.__class__, name)(model, *args, **kwargs)
+
         method.__name__ = str(name)
         return method
 
@@ -74,22 +73,23 @@ class MutableModelProxy(object):
     def __init__(self, model):
         assert issubclass(model, MutableModel)
         supset = super(MutableModelProxy, self).__setattr__
-        supset('model', model)
-        supset('refreshing', False)
+        supset("model", model)
+        supset("refreshing", False)
 
     def __get__(self, instance=None, owner=None):
         model = self.model
         if not self.refreshing and model.is_obsolete():
             supset = super(MutableModelProxy, self).__setattr__
             try:
-                supset('refreshing', True)
+                supset("refreshing", True)
                 try:
                     definition = model.definition()
                 finally:
-                    supset('refreshing', False)
+                    supset("refreshing", False)
             except ModelDefinition.DoesNotExist:
                 raise AttributeError(
-                    'The definition of %s.%s has been deleted.' % (
+                    "The definition of %s.%s has been deleted."
+                    % (
                         model._meta.app_label,
                         model._meta.object_name,
                     )
@@ -98,13 +98,20 @@ class MutableModelProxy(object):
                 proxy = definition.model_class()
                 assert isinstance(proxy, MutableModelProxy)
                 model = proxy.model
-                supset('model', model)
+                supset("model", model)
         return model
 
     def __getattribute__(self, name):
-        if name in ('model', 'refreshing', '__get__', '__eq__', '__ne__', '__reduce_ex__'):
+        if name in (
+            "model",
+            "refreshing",
+            "__get__",
+            "__eq__",
+            "__ne__",
+            "__reduce_ex__",
+        ):
             return super(MutableModelProxy, self).__getattribute__(name)
-        model = super(MutableModelProxy, self).__getattribute__('__get__')()
+        model = super(MutableModelProxy, self).__getattribute__("__get__")()
         return getattr(model, name)
 
     def __call__(self, *args, **kwargs):
@@ -132,47 +139,55 @@ class MutableModelProxy(object):
 
 
 class ModelDefinition(ContentType):
-    object_name = PythonIdentifierField(_('object name'))
+    object_name = PythonIdentifierField(_("object name"))
     db_table = models.CharField(
-        _('database table'), max_length=63, blank=True, null=True
+        _("database table"), max_length=63, blank=True, null=True
     )
-    managed = models.BooleanField(_('managed'), default=False)
+    managed = models.BooleanField(_("managed"), default=False)
     verbose_name = LazilyTranslatedField(
-        _('verbose name'), blank=True, null=True
+        _("verbose name"), blank=True, null=True
     )
     verbose_name_plural = LazilyTranslatedField(
-        _('verbose name plural'), blank=True, null=True
+        _("verbose name plural"), blank=True, null=True
     )
 
     objects = ModelDefinitionManager()
 
     class Meta:
-        app_label = 'mutant'
-        verbose_name = _('model definition')
-        verbose_name_plural = _('model definitions')
+        app_label = "mutant"
+        verbose_name = _("model definition")
+        verbose_name_plural = _("model definitions")
 
     def __str__(self):
         return "%s.%s" % (self.app_label, self.object_name)
 
     def natural_key(self):
         return (self.app_label, self.model)
-    natural_key.dependencies = ['contenttypes.contenttype']
+
+    natural_key.dependencies = ["contenttypes.contenttype"]
 
     def __init__(self, *args, **kwargs):
         # Attach unsaved related objects
-        bases = kwargs.pop('bases', ())
-        fields = kwargs.pop('fields', ())
+        bases = kwargs.pop("bases", ())
+        fields = kwargs.pop("fields", ())
         extra_fields = []
         delayed_save = []
         for base in bases:
-            assert base.pk is None, 'Cannot associate already existing BaseDefinition'
+            assert (
+                base.pk is None
+            ), "Cannot associate already existing BaseDefinition"
             extra_fields.extend(
-                [(f.get_attname_column()[1], f) for f in base.get_declared_fields(fields)]
+                [
+                    (f.get_attname_column()[1], f)
+                    for f in base.get_declared_fields(fields)
+                ]
             )
             base._state._add_columns = False
             delayed_save.append(base)
         for field in fields:
-            assert field.pk is None, 'Cannot associate already existing FieldDefinition'
+            assert (
+                field.pk is None
+            ), "Cannot associate already existing FieldDefinition"
             field_instance = field.construct_for_migrate()
             extra_fields.append(
                 (field_instance.get_attname_column()[1], field_instance)
@@ -202,29 +217,32 @@ class ModelDefinition(ContentType):
 
     def get_model_opts(self):
         opts = {
-            'app_label': self.app_label,
-            'managed': self.managed,
+            "app_label": self.app_label,
+            "managed": self.managed,
         }
         if (1, 10) <= django.VERSION < (2, 0):
-            opts['manager_inheritance_from_future'] = True
+            opts["manager_inheritance_from_future"] = True
         # Database table
         db_table = self.db_table
         if db_table is None:
             db_table = get_db_table(*self.natural_key())
-        opts['db_table'] = db_table
+        opts["db_table"] = db_table
         # Verbose names
         if self.verbose_name is not None:
-            opts['verbose_name'] = self.verbose_name
+            opts["verbose_name"] = self.verbose_name
         if self.verbose_name_plural is not None:
-            opts['verbose_name_plural'] = self.verbose_name_plural
+            opts["verbose_name_plural"] = self.verbose_name_plural
         # Unique together
         unique_together = [
-            ut for ut in (
-                ut_def.construct() for ut_def in self.uniquetogetherdefinitions.all()
-            ) if ut
+            ut
+            for ut in (
+                ut_def.construct()
+                for ut_def in self.uniquetogetherdefinitions.all()
+            )
+            if ut
         ]
         if unique_together:
-            opts['unique_together'] = unique_together
+            opts["unique_together"] = unique_together
         # Ordering
         ordering = tuple(
             ord_field_def.construct()
@@ -234,7 +252,7 @@ class ModelDefinition(ContentType):
             # Make sure not to add ordering if it's empty since it would
             # prevent the model from inheriting its possible base ordering.
             # Kinda related to django #17429
-            opts['ordering'] = ordering
+            opts["ordering"] = ordering
         return opts
 
     def get_model_attrs(self):
@@ -245,33 +263,46 @@ class ModelDefinition(ContentType):
         else:
             __module__ = str("%s.models" % app.module.__name__)
         attrs = {
-            '__module__': __module__,
-            '_definition': (self.__class__, self.pk),
-            '_dependencies': set(),
-            '_is_obsolete': False,
+            "__module__": __module__,
+            "_definition": (self.__class__, self.pk),
+            "_dependencies": set(),
+            "_is_obsolete": False,
         }
         return attrs
 
     def get_state(self):
         fields = [
-            (field_def.name, field_def.construct()) for field_def in self.fielddefinitions.select_subclasses()
+            (field_def.name, field_def.construct())
+            for field_def in self.fielddefinitions.select_subclasses()
         ]
         options = self.get_model_opts()
         bases = self.get_model_bases()
-        return ModelState(self.app_label, self.object_name, fields=fields, options=options, bases=bases)
+        return ModelState(
+            self.app_label,
+            self.object_name,
+            fields=fields,
+            options=options,
+            bases=bases,
+        )
 
     def construct(self, force_create=False, existing_model_class=None):
         state = self.get_state()
         attrs = self.get_model_attrs()
 
         identifier = (
-            self.pk, self.object_name, state.options, dict(
-                (name, field.deconstruct()) for name, field in state.fields.items()
-            ), [
+            self.pk,
+            self.object_name,
+            state.options,
+            dict(
+                (name, field.deconstruct())
+                for name, field in state.fields.items()
+            ),
+            [
                 MutableModelProxy(base).checksum()
-                if base is not MutableModel and issubclass(base, MutableModel) else base
+                if base is not MutableModel and issubclass(base, MutableModel)
+                else base
                 for base in state.bases
-            ]
+            ],
         )
         checksum = md5(pickle.dumps(identifier)).hexdigest()
         state_handler.set_checksum(self.pk, checksum)
@@ -294,8 +325,9 @@ class ModelDefinition(ContentType):
             setattr(model_class, attr, value)
 
         mutable_class_prepared.send(
-            sender=model_class, definition=self,
-            existing_model_class=existing_model_class
+            sender=model_class,
+            definition=self,
+            existing_model_class=existing_model_class,
         )
         logger.debug("Created model class %s.", model_class)
 
@@ -320,7 +352,7 @@ class ModelDefinition(ContentType):
 
     def save(self, *args, **kwargs):
         self.model = self.object_name.lower()
-        model_class = getattr(self, '_model_class', None)
+        model_class = getattr(self, "_model_class", None)
         if model_class:
             remove_from_app_cache(model_class)
         return super(ModelDefinition, self).save(*args, **kwargs)
@@ -331,22 +363,24 @@ class ModelDefinitionAttribute(models.Model):
     A mixin used to make sure models that alter the state of a defined model
     clear the cached version
     """
+
     model_def = models.ForeignKey(
-        ModelDefinition, related_name="%(class)ss",
-        on_delete=CASCADE_MARK_ORIGIN
+        ModelDefinition,
+        related_name="%(class)ss",
+        on_delete=CASCADE_MARK_ORIGIN,
     )
 
     class Meta:
         abstract = True
 
     def save(self, *args, **kwargs):
-        force_create = kwargs.pop('force_create_model_class', True)
+        force_create = kwargs.pop("force_create_model_class", True)
         save = super(ModelDefinitionAttribute, self).save(*args, **kwargs)
         self.model_def.model_class(force_create=force_create)
         return save
 
     def delete(self, *args, **kwargs):
-        force_create = kwargs.pop('force_create_model_class', True)
+        force_create = kwargs.pop("force_create_model_class", True)
         delete = super(ModelDefinitionAttribute, self).delete(*args, **kwargs)
         self.model_def.model_class(force_create=force_create)
         return delete
@@ -357,7 +391,9 @@ class OrderedModelDefinitionAttribute(OrderedModel, ModelDefinitionAttribute):
         abstract = True
 
     def get_ordering_queryset(self):
-        qs = super(OrderedModelDefinitionAttribute, self).get_ordering_queryset()
+        qs = super(
+            OrderedModelDefinitionAttribute, self
+        ).get_ordering_queryset()
         return qs.filter(model_def_id=self.model_def_id)
 
 
@@ -365,23 +401,28 @@ class BaseDefinition(OrderedModelDefinitionAttribute):
     """
     Model used to represent bases of a ModelDefinition
     """
-    base = PickledObjectField(_('base'))
+
+    base = PickledObjectField(_("base"))
 
     class Meta:
-        app_label = 'mutant'
-        ordering = ['order']
-        unique_together = (('model_def', 'order'),)
+        app_label = "mutant"
+        ordering = ["order"]
+        unique_together = (("model_def", "order"),)
 
     def clean(self):
         try:
             if issubclass(self.base, models.Model):
                 if self.base._meta.proxy:
                     raise ValidationError(_("Base can't be a proxy model."))
-                elif (issubclass(self.base, MutableModel) and
-                      self.base.definition() == self.model_def):
-                    raise ValidationError(_("A model definition can't be a base of itself."))
+                elif (
+                    issubclass(self.base, MutableModel)
+                    and self.base.definition() == self.model_def
+                ):
+                    raise ValidationError(
+                        _("A model definition can't be a base of itself.")
+                    )
         except TypeError:
-            raise ValidationError(_('Base must be a class.'))
+            raise ValidationError(_("Base must be a class."))
         return super(BaseDefinition, self).clean()
 
     def construct(self):
@@ -405,15 +446,19 @@ class BaseDefinition(OrderedModelDefinitionAttribute):
                         clone.set_attributes_from_name(field.name)
                         fields.append(clone)
             elif not opts.proxy and not any(
-                    isinstance(field, models.OneToOneField) and
-                    get_remote_field(field).parent_link and
-                    get_remote_field_model(field) == get_opts_label(opts)
-                    for field in existing_fields):
+                isinstance(field, models.OneToOneField)
+                and get_remote_field(field).parent_link
+                and get_remote_field_model(field) == get_opts_label(opts)
+                for field in existing_fields
+            ):
                 # This is a concrete model base, we must declare a o2o
-                attr_name = '%s_ptr' % opts.model_name
+                attr_name = "%s_ptr" % opts.model_name
                 parent_link = models.OneToOneField(
-                    self.base, on_delete=models.CASCADE,
-                    name=attr_name, auto_created=True, parent_link=True
+                    self.base,
+                    on_delete=models.CASCADE,
+                    name=attr_name,
+                    auto_created=True,
+                    parent_link=True,
                 )
                 parent_link.set_attributes_from_name(attr_name)
                 fields.append(parent_link)
@@ -422,11 +467,11 @@ class BaseDefinition(OrderedModelDefinitionAttribute):
 
 class OrderingFieldDefinition(OrderedModelDefinitionAttribute):
     lookup = models.CharField(max_length=255)
-    descending = models.BooleanField(_('descending'), default=False)
+    descending = models.BooleanField(_("descending"), default=False)
 
     class Meta:
-        app_label = 'mutant'
-        ordering = ['order']
+        app_label = "mutant"
+        ordering = ["order"]
         # TODO: Should be unique both it bugs order swapping
         # unique_together = (('model_def', 'order'),)
 
@@ -434,7 +479,7 @@ class OrderingFieldDefinition(OrderedModelDefinitionAttribute):
         """
         Make sure the lookup makes sense
         """
-        if self.lookup == '?':  # Randomly sort
+        if self.lookup == "?":  # Randomly sort
             return
         else:
             lookups = self.lookup.split(LOOKUP_SEP)
@@ -454,7 +499,7 @@ class OrderingFieldDefinition(OrderedModelDefinitionAttribute):
                 finally:
                     if not valid:
                         msg = _("This field doesn't exist")
-                        raise ValidationError({'lookup': [msg]})
+                        raise ValidationError({"lookup": [msg]})
 
     def construct(self):
         return ("-%s" % self.lookup) if self.descending else self.lookup
@@ -462,23 +507,23 @@ class OrderingFieldDefinition(OrderedModelDefinitionAttribute):
 
 class UniqueTogetherDefinition(ModelDefinitionAttribute):
     field_defs = models.ManyToManyField(
-        'FieldDefinition', related_name='unique_together_defs'
+        "FieldDefinition", related_name="unique_together_defs"
     )
 
     class Meta:
-        app_label = 'mutant'
+        app_label = "mutant"
 
     def __str__(self):
         if self.pk:
-            names = ', '.join(self.construct())
+            names = ", ".join(self.construct())
             return _("Unique together of (%s)") % names
-        return ''
+        return ""
 
     def clean(self):
-        for field_def in self.field_defs.select_related('model_def'):
+        for field_def in self.field_defs.select_related("model_def"):
             if field_def.model_def != self.model_def:
-                msg = _('All fields must be of the same model')
-                raise ValidationError({'field_defs': [msg]})
+                msg = _("All fields must be of the same model")
+                raise ValidationError({"field_defs": [msg]})
 
     def construct(self):
         return tuple(self.field_defs.names())

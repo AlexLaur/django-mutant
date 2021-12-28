@@ -13,7 +13,9 @@ from polymodels.models import BasePolymorphicModel
 from polymodels.utils import copy_fields
 
 from ...db.fields import (
-    FieldDefinitionTypeField, LazilyTranslatedField, PythonIdentifierField,
+    FieldDefinitionTypeField,
+    LazilyTranslatedField,
+    PythonIdentifierField,
 )
 from ...utils import lazy_string_format, popattr
 from ..model import ModelDefinitionAttribute
@@ -26,10 +28,10 @@ def NOT_PROVIDED():
 
 
 class FieldDefinitionBase(models.base.ModelBase):
-    FIELD_CLASS_ATTR = 'defined_field_class'
-    FIELD_OPTIONS_ATTR = 'defined_field_options'
-    FIELD_DESCRIPTION_ATTR = 'defined_field_description'
-    FIELD_CATEGORY_ATTR = 'defined_field_category'
+    FIELD_CLASS_ATTR = "defined_field_class"
+    FIELD_OPTIONS_ATTR = "defined_field_options"
+    FIELD_DESCRIPTION_ATTR = "defined_field_description"
+    FIELD_CATEGORY_ATTR = "defined_field_category"
 
     DEFAULT_VERBOSE_NAME = _("%s field definition")
     DEFAULT_VERBOSE_NAME_PLURAL = _("%s field definitions")
@@ -42,19 +44,23 @@ class FieldDefinitionBase(models.base.ModelBase):
     def __new__(cls, name, parents, attrs):
         super_new = super(FieldDefinitionBase, cls).__new__
 
-        if 'Meta' in attrs:
-            Meta = attrs['Meta']
+        if "Meta" in attrs:
+            Meta = attrs["Meta"]
 
             field_description = popattr(Meta, cls.FIELD_DESCRIPTION_ATTR, None)
 
             field_class = popattr(Meta, cls.FIELD_CLASS_ATTR, None)
             if field_class:
                 if not issubclass(field_class, models.Field):
-                    msg = ("Meta's defined_field_class must be a subclass of "
-                           "django.db.models.fields.Field")
+                    msg = (
+                        "Meta's defined_field_class must be a subclass of "
+                        "django.db.models.fields.Field"
+                    )
                     raise ImproperlyConfigured(msg)
                 elif field_description is None:
-                    field_description = getattr(field_class, 'description', None)
+                    field_description = getattr(
+                        field_class, "description", None
+                    )
 
             field_options = popattr(Meta, cls.FIELD_OPTIONS_ATTR, ())
             if field_options:
@@ -64,8 +70,8 @@ class FieldDefinitionBase(models.base.ModelBase):
 
             field_category = popattr(Meta, cls.FIELD_CATEGORY_ATTR, None)
 
-            has_verbose_name = hasattr(Meta, 'verbose_name')
-            has_verbose_name_plural = hasattr(Meta, 'verbose_name_plural')
+            has_verbose_name = hasattr(Meta, "verbose_name")
+            has_verbose_name_plural = hasattr(Meta, "verbose_name_plural")
         else:
             field_class = None
             field_options = ()
@@ -87,47 +93,73 @@ class FieldDefinitionBase(models.base.ModelBase):
                 if isinstance(parent, cls):
                     parent_opts = parent._meta
                     if field_description is None:
-                        field_description = getattr(parent_opts, cls.FIELD_DESCRIPTION_ATTR, None)
+                        field_description = getattr(
+                            parent_opts, cls.FIELD_DESCRIPTION_ATTR, None
+                        )
                     if field_class is None:
-                        field_class = getattr(parent_opts, cls.FIELD_CLASS_ATTR, None)
+                        field_class = getattr(
+                            parent_opts, cls.FIELD_CLASS_ATTR, None
+                        )
                         if field_class and field_description is None:
                             field_description = field_class.description
-                    field_options += getattr(parent_opts, cls.FIELD_OPTIONS_ATTR, ())
+                    field_options += getattr(
+                        parent_opts, cls.FIELD_OPTIONS_ATTR, ()
+                    )
                     if field_category is None:
-                        field_category = getattr(parent_opts, cls.FIELD_CATEGORY_ATTR, None)
+                        field_category = getattr(
+                            parent_opts, cls.FIELD_CATEGORY_ATTR, None
+                        )
                     if parent is not base_definition:
                         parents = list(parent.__bases__) + parents  # mimic mro
 
             from ...management import (
-                field_definition_post_save, FIELD_DEFINITION_POST_SAVE_UID
+                field_definition_post_save,
+                FIELD_DEFINITION_POST_SAVE_UID,
             )
-            post_save_dispatch_uid = FIELD_DEFINITION_POST_SAVE_UID % definition._meta.model_name
-            signals.post_save.connect(field_definition_post_save, definition,
-                                      dispatch_uid=post_save_dispatch_uid)
+
+            post_save_dispatch_uid = (
+                FIELD_DEFINITION_POST_SAVE_UID % definition._meta.model_name
+            )
+            signals.post_save.connect(
+                field_definition_post_save,
+                definition,
+                dispatch_uid=post_save_dispatch_uid,
+            )
 
             # Warn the user that they should rely on signals instead of
             # overriding the delete methods since it might not be called
             # when deleting the associated model definition.
             if definition.delete != base_definition.delete:
                 def_name = definition.__name__
-                warnings.warn("Avoid overriding the `delete` method on "
-                              "`FieldDefinition` subclass `%s` since it won't "
-                              "be called when the associated `ModelDefinition` "
-                              "is deleted. If you want to perform actions on "
-                              "deletion, add hooks to the `pre_delete` and "
-                              "`post_delete` signals." % def_name, UserWarning)
+                warnings.warn(
+                    "Avoid overriding the `delete` method on "
+                    "`FieldDefinition` subclass `%s` since it won't "
+                    "be called when the associated `ModelDefinition` "
+                    "is deleted. If you want to perform actions on "
+                    "deletion, add hooks to the `pre_delete` and "
+                    "`post_delete` signals." % def_name,
+                    UserWarning,
+                )
 
         setattr(definition._meta, cls.FIELD_CLASS_ATTR, field_class)
-        setattr(definition._meta, cls.FIELD_OPTIONS_ATTR, tuple(set(field_options)))
-        setattr(definition._meta, cls.FIELD_DESCRIPTION_ATTR, field_description)
+        setattr(
+            definition._meta, cls.FIELD_OPTIONS_ATTR, tuple(set(field_options))
+        )
+        setattr(
+            definition._meta, cls.FIELD_DESCRIPTION_ATTR, field_description
+        )
         setattr(definition._meta, cls.FIELD_CATEGORY_ATTR, field_category)
 
         if field_description is not None:
             if not has_verbose_name:
-                verbose_name = lazy_string_format(cls.DEFAULT_VERBOSE_NAME, field_description)
+                verbose_name = lazy_string_format(
+                    cls.DEFAULT_VERBOSE_NAME, field_description
+                )
                 definition._meta.verbose_name = verbose_name
                 if not has_verbose_name_plural:
-                    verbose_name_plural = lazy_string_format(cls.DEFAULT_VERBOSE_NAME_PLURAL, field_description)
+                    verbose_name_plural = lazy_string_format(
+                        cls.DEFAULT_VERBOSE_NAME_PLURAL, field_description
+                    )
                     definition._meta.verbose_name_plural = verbose_name_plural
 
         if field_class is not None:
@@ -136,43 +168,66 @@ class FieldDefinitionBase(models.base.ModelBase):
         return definition
 
 
-class FieldDefinition(six.with_metaclass(FieldDefinitionBase, BasePolymorphicModel,
-                                         ModelDefinitionAttribute)):
-    CONTENT_TYPE_FIELD = 'content_type'
+class FieldDefinition(
+    six.with_metaclass(
+        FieldDefinitionBase, BasePolymorphicModel, ModelDefinitionAttribute
+    )
+):
+    CONTENT_TYPE_FIELD = "content_type"
     content_type = FieldDefinitionTypeField()
 
-    name = PythonIdentifierField(_('name'))
-    verbose_name = LazilyTranslatedField(_('verbose name'), blank=True, null=True)
-    help_text = LazilyTranslatedField(_('help text'), blank=True, null=True)
+    name = PythonIdentifierField(_("name"))
+    verbose_name = LazilyTranslatedField(
+        _("verbose name"), blank=True, null=True
+    )
+    help_text = LazilyTranslatedField(_("help text"), blank=True, null=True)
 
-    null = models.BooleanField(_('null'), default=False)
-    blank = models.BooleanField(_('blank'), default=False)
+    null = models.BooleanField(_("null"), default=False)
+    blank = models.BooleanField(_("blank"), default=False)
 
-    db_column = models.SlugField(_('db column'), max_length=30, blank=True, null=True)
-    db_index = models.BooleanField(_('db index'), default=False)
+    db_column = models.SlugField(
+        _("db column"), max_length=30, blank=True, null=True
+    )
+    db_index = models.BooleanField(_("db index"), default=False)
 
-    editable = models.BooleanField(_('editable'), default=True)
-    default = PickledObjectField(_('default'), null=True, default=NOT_PROVIDED)
+    editable = models.BooleanField(_("editable"), default=True)
+    default = PickledObjectField(_("default"), null=True, default=NOT_PROVIDED)
 
-    primary_key = models.BooleanField(_('primary key'), default=False)
-    unique = models.BooleanField(_('unique'), default=False)
+    primary_key = models.BooleanField(_("primary key"), default=False)
+    unique = models.BooleanField(_("unique"), default=False)
 
-    unique_for_date = PythonIdentifierField(_('unique for date'), blank=True, null=True)
-    unique_for_month = PythonIdentifierField(_('unique for month'), blank=True, null=True)
-    unique_for_year = PythonIdentifierField(_('unique for year'), blank=True, null=True)
+    unique_for_date = PythonIdentifierField(
+        _("unique for date"), blank=True, null=True
+    )
+    unique_for_month = PythonIdentifierField(
+        _("unique for month"), blank=True, null=True
+    )
+    unique_for_year = PythonIdentifierField(
+        _("unique for year"), blank=True, null=True
+    )
 
     objects = FieldDefinitionManager()
 
     class Meta:
-        app_label = 'mutant'
-        verbose_name = _('field')
-        verbose_name_plural = _('fields')
-        unique_together = (('model_def', 'name'),)
+        app_label = "mutant"
+        verbose_name = _("field")
+        verbose_name_plural = _("fields")
+        unique_together = (("model_def", "name"),)
         defined_field_options = (
-            'name', 'verbose_name', 'help_text',
-            'null', 'blank', 'db_column', 'db_index',
-            'editable', 'default', 'primary_key', 'unique',
-            'unique_for_date', 'unique_for_month', 'unique_for_year'
+            "name",
+            "verbose_name",
+            "help_text",
+            "null",
+            "blank",
+            "db_column",
+            "db_index",
+            "editable",
+            "default",
+            "primary_key",
+            "unique",
+            "unique_for_date",
+            "unique_for_month",
+            "unique_for_year",
         )
 
     def __init__(self, *args, **kwargs):
@@ -182,7 +237,8 @@ class FieldDefinition(six.with_metaclass(FieldDefinitionBase, BasePolymorphicMod
 
     def natural_key(self):
         return self.model_def.natural_key() + (self.name,)
-    natural_key.dependencies = ('mutant.modeldefinition',)
+
+    natural_key.dependencies = ("mutant.modeldefinition",)
 
     def save(self, *args, **kwargs):
         if self._state.adding:
@@ -263,10 +319,10 @@ class FieldDefinition(six.with_metaclass(FieldDefinitionBase, BasePolymorphicMod
             default = field.to_python(field.get_default())
             if value != default:
                 options[name] = value
-        if 'choices' not in overrides:  # Avoid fetching if it's overridden
+        if "choices" not in overrides:  # Avoid fetching if it's overridden
             choices = self.choices.construct()
             if choices:
-                options['choices'] = choices
+                options["choices"] = choices
         return options
 
     def construct(self, **overrides):
@@ -305,28 +361,31 @@ class FieldDefinition(six.with_metaclass(FieldDefinitionBase, BasePolymorphicMod
                     field.clean(default, None)
                 except Exception:
                     msg = _("%r is not a valid default value") % default
-                    raise ValidationError({'default': [msg]})
+                    raise ValidationError({"default": [msg]})
 
 
 class FieldDefinitionChoice(OrderedModel):
     """
     A Model to allow specifying choices for a field definition instance
     """
-    field_def = models.ForeignKey(FieldDefinition, on_delete=models.CASCADE, related_name='choices')
-    group = LazilyTranslatedField(_('group'), blank=True, null=True)
-    value = PickledObjectField(_('value'), editable=True)
-    label = LazilyTranslatedField(_('label'))
+
+    field_def = models.ForeignKey(
+        FieldDefinition, on_delete=models.CASCADE, related_name="choices"
+    )
+    group = LazilyTranslatedField(_("group"), blank=True, null=True)
+    value = PickledObjectField(_("value"), editable=True)
+    label = LazilyTranslatedField(_("label"))
 
     objects = FieldDefinitionChoiceManager()
 
     class Meta:
-        app_label = 'mutant'
-        verbose_name = _('field definition choice')
-        verbose_name_plural = _('field definition choices')
-        ordering = ['order']
+        app_label = "mutant"
+        verbose_name = _("field definition choice")
+        verbose_name_plural = _("field definition choices")
+        ordering = ["order"]
         unique_together = (
-            ('field_def', 'order'),
-            ('field_def', 'group', 'value')
+            ("field_def", "order"),
+            ("field_def", "group", "value"),
         )
 
     def clean(self):
@@ -336,7 +395,7 @@ class FieldDefinitionChoice(OrderedModel):
             field = self.field_def.type_cast().construct(choices=None)
             field.clean(self.value, None)
         except ValidationError as e:
-            raise ValidationError({'value': e.messages})
+            raise ValidationError({"value": e.messages})
 
     def save(self, *args, **kwargs):
         save = super(FieldDefinitionChoice, self).save(*args, **kwargs)

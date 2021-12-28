@@ -18,7 +18,7 @@ class Command(BaseCommand):
         if app_labels:
             model_defs = model_defs.filter(
                 app_label__in=set(
-                    app_label.split('.')[0] for app_label in app_labels
+                    app_label.split(".")[0] for app_label in app_labels
                 )
             )
 

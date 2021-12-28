@@ -4,10 +4,10 @@ import logging
 
 from django.utils.version import get_version
 
-VERSION = (0, 4, 0, 'alpha', 0)
+VERSION = (0, 4, 0, "alpha", 0)
 
 __version__ = get_version(VERSION)
 
-logger = logging.getLogger('mutant')
+logger = logging.getLogger("mutant")
 
-default_app_config = 'mutant.apps.MutantConfig'
+default_app_config = "mutant.apps.MutantConfig"

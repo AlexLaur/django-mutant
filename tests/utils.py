@@ -13,14 +13,18 @@ from mutant.utils import allow_migrate
 def table_columns_iterator(db, table_name):
     connection = connections[db]
     cursor = connection.cursor()
-    description = connection.introspection.get_table_description(cursor, table_name)
+    description = connection.introspection.get_table_description(
+        cursor, table_name
+    )
     return (row[0] for row in description)
 
 
 class BaseModelDefinitionTestCase(ModelDefinitionDDLTestCase):
     @classmethod
     def setUpTestData(cls):
-        model_def = ModelDefinition.objects.create(app_label='mutant', object_name='Model')
+        model_def = ModelDefinition.objects.create(
+            app_label="mutant", object_name="Model"
+        )
         cls.model_def_pk = model_def.pk
 
     def setUp(self):
@@ -34,7 +38,9 @@ class BaseModelDefinitionTestCase(ModelDefinitionDDLTestCase):
         checksum = model_def.model_class().checksum()
         yield
         if model_def.model_class().checksum() == checksum:
-            raise AssertionError("Checksum of model %s should have changed." % model_def)
+            raise AssertionError(
+                "Checksum of model %s should have changed." % model_def
+            )
 
     @classmethod
     @contextmanager
@@ -48,7 +54,9 @@ class BaseModelDefinitionTestCase(ModelDefinitionDDLTestCase):
             pass
         else:
             model_class = model_def.model_class()
-            raise AssertionError("Checksum of model %s shouldn't have changed." % model_class)
+            raise AssertionError(
+                "Checksum of model %s shouldn't have changed." % model_class
+            )
 
     def assertTableExists(self, db, table):
         tables = connections[db].introspection.table_names()
@@ -72,15 +80,13 @@ class BaseModelDefinitionTestCase(ModelDefinitionDDLTestCase):
 
     def assertColumnExists(self, db, table, column):
         columns = tuple(table_columns_iterator(db, table))
-        data = {
-            'db': db,
-            'table': table,
-            'column': column,
-            'columns': columns
-        }
-        self.assertIn(column, columns,
-                      "Column '%(db)s.%(table)s.%(column)s' doesn't exist, "
-                      "%(db)s.'%(table)s's columns are %(columns)s" % data)
+        data = {"db": db, "table": table, "column": column, "columns": columns}
+        self.assertIn(
+            column,
+            columns,
+            "Column '%(db)s.%(table)s.%(column)s' doesn't exist, "
+            "%(db)s.'%(table)s's columns are %(columns)s" % data,
+        )
 
     def assertColumnDoesntExists(self, db, table, column):
         self.assertRaises(

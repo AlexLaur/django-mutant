@@ -11,9 +11,9 @@ from mutant.models import FieldDefinition, ModelDefinition
 
 class CustomFieldDefinition(FieldDefinition):
     class Meta:
-        app_label = 'tests'
-        defined_field_category = _('Custom category')
-        defined_field_description = _('Custom description')
+        app_label = "tests"
+        defined_field_category = _("Custom category")
+        defined_field_description = _("Custom description")
         if (1, 10) <= django.VERSION < (2, 0):
             manager_inheritance_from_future = True
 
@@ -22,39 +22,41 @@ class FieldDefinitionModel(models.Model):
     field_type = FieldDefinitionTypeField()
 
     class Meta:
-        app_label = 'tests'
+        app_label = "tests"
 
 
 class ModelWithModelDefinitionReference(models.Model):
-    model_def = models.OneToOneField(ModelDefinition, on_delete=models.CASCADE, related_name='+')
-    model_objects = ModelClassAttributeDescriptor('model_def', 'objects')
+    model_def = models.OneToOneField(
+        ModelDefinition, on_delete=models.CASCADE, related_name="+"
+    )
+    model_objects = ModelClassAttributeDescriptor("model_def", "objects")
 
     nullable_model_def = models.ForeignKey(
-        ModelDefinition, on_delete=models.SET_NULL, related_name='+', null=True
+        ModelDefinition, on_delete=models.SET_NULL, related_name="+", null=True
     )
     nullable_objects = ModelClassAttributeDescriptor(
-        'nullable_model_def', 'objects'
+        "nullable_model_def", "objects"
     )
 
     class Meta:
-        app_label = 'tests'
+        app_label = "tests"
 
 
 class Mixin(object):
     def method(self):
-        return 'Mixin'
+        return "Mixin"
 
 
 class ConcreteModel(models.Model):
     concrete_model_field = models.NullBooleanField()
 
     class Meta:
-        app_label = 'tests'
+        app_label = "tests"
 
 
 class ProxyModel(ConcreteModel):
     class Meta:
-        app_label = 'tests'
+        app_label = "tests"
         proxy = True
 
 
@@ -65,7 +67,7 @@ class AbstractModel(models.Model):
         abstract = True
 
     def method(self):
-        return 'AbstractModel'
+        return "AbstractModel"
 
 
 class AbstractConcreteModelSubclass(ConcreteModel):

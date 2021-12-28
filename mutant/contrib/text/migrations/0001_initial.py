@@ -7,31 +7,42 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mutant', '0001_initial'),
+        ("mutant", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='CharFieldDefinition',
+            name="CharFieldDefinition",
             fields=[
-                ('fielddefinition_ptr', models.OneToOneField(
-                    to='mutant.FieldDefinition', on_delete=models.CASCADE, parent_link=True, auto_created=True,
-                    primary_key=True, serialize=False
-                )),
-                ('max_length', models.PositiveSmallIntegerField(null=True, verbose_name='max length', blank=True)),
+                (
+                    "fielddefinition_ptr",
+                    models.OneToOneField(
+                        to="mutant.FieldDefinition",
+                        on_delete=models.CASCADE,
+                        parent_link=True,
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "max_length",
+                    models.PositiveSmallIntegerField(
+                        null=True, verbose_name="max length", blank=True
+                    ),
+                ),
             ],
             options={
-                'db_table': 'mutant_charfielddefinition',
+                "db_table": "mutant_charfielddefinition",
             },
-            bases=('mutant.fielddefinition',),
+            bases=("mutant.fielddefinition",),
         ),
         migrations.CreateModel(
-            name='TextFieldDefinition',
-            fields=[
-            ],
+            name="TextFieldDefinition",
+            fields=[],
             options={
-                'proxy': True,
+                "proxy": True,
             },
-            bases=('text.charfielddefinition',),
+            bases=("text.charfielddefinition",),
         ),
     ]

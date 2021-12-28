@@ -10,7 +10,9 @@ from django.utils.translation import ugettext_lazy as _
 
 from mutant.compat import get_remote_field_model
 from mutant.contrib.related.models import (
-    ForeignKeyDefinition, ManyToManyFieldDefinition, OneToOneFieldDefinition,
+    ForeignKeyDefinition,
+    ManyToManyFieldDefinition,
+    OneToOneFieldDefinition,
 )
 from mutant.models import BaseDefinition, ModelDefinition
 from mutant.test.testcases import FieldDefinitionTestMixin
@@ -20,27 +22,28 @@ from .utils import BaseModelDefinitionTestCase
 
 
 class RelatedFieldDefinitionTestMixin(FieldDefinitionTestMixin):
-    field_definition_category = _('Related')
+    field_definition_category = _("Related")
 
     @classmethod
     def setUpTestData(cls):
         cls.field_definition_init_kwargs = {
-            'to': ContentType.objects.get_for_model(ContentType),
-            'null': True,
+            "to": ContentType.objects.get_for_model(ContentType),
+            "null": True,
         }
         super(RelatedFieldDefinitionTestMixin, cls).setUpTestData()
 
     def test_field_clean(self):
         # Refs charettes/django-mutant#5
         try:
-            self.field_definition_cls(related_name='related').clean()
+            self.field_definition_cls(related_name="related").clean()
         except Exception as e:
             if not isinstance(e, ValidationError):
-                self.fail('`clean` method should only raise `ValidationError`')
+                self.fail("`clean` method should only raise `ValidationError`")
 
 
-class ForeignKeyDefinitionTest(RelatedFieldDefinitionTestMixin,
-                               BaseModelDefinitionTestCase):
+class ForeignKeyDefinitionTest(
+    RelatedFieldDefinitionTestMixin, BaseModelDefinitionTestCase
+):
     manual_transaction = True
     field_definition_cls = ForeignKeyDefinition
 
@@ -58,8 +61,10 @@ class ForeignKeyDefinitionTest(RelatedFieldDefinitionTestMixin,
         def has_reverse_field_on_ct(model_class):
             reverse_fields = get_reverse_fields(ContentType._meta)
             return any(
-                reverse_field.related_model == model_class for reverse_field in reverse_fields
+                reverse_field.related_model == model_class
+                for reverse_field in reverse_fields
             )
+
         self.assertTrue(has_reverse_field_on_ct(self.model_def.model_class()))
         super(ForeignKeyDefinitionTest, self).test_field_deletion()
         self.assertFalse(has_reverse_field_on_ct(self.model_def.model_class()))
@@ -67,23 +72,23 @@ class ForeignKeyDefinitionTest(RelatedFieldDefinitionTestMixin,
     def test_foreign_key_between_mutable_models(self):
         first_model_def = self.model_def
         second_model_def = ModelDefinition.objects.create(
-            app_label='related', object_name='SecondModel'
+            app_label="related", object_name="SecondModel"
         )
         FirstModel = first_model_def.model_class()
         SecondModel = second_model_def.model_class()
         second = SecondModel.objects.create()
         ForeignKeyDefinition.objects.create(
             model_def=first_model_def,
-            name='second',
+            name="second",
             null=True,
             to=second_model_def,
-            related_name='first_set'
+            related_name="first_set",
         )
         self.assertTrue(second.is_obsolete())
         # Make sure dependencies were set correctly
         self.assertSetEqual(
             SecondModel._dependencies,
-            set([(ModelDefinition, first_model_def.pk)])
+            set([(ModelDefinition, first_model_def.pk)]),
         )
         second = SecondModel.objects.get()
         first = FirstModel.objects.create(second=second)
@@ -93,24 +98,24 @@ class ForeignKeyDefinitionTest(RelatedFieldDefinitionTestMixin,
         self.assertEqual(SecondModel.objects.get(first_set=first), second)
         ForeignKeyDefinition.objects.create(
             model_def=second_model_def,
-            name='first',
+            name="first",
             null=True,
             to=first_model_def,
-            related_name='second_set'
+            related_name="second_set",
         )
         self.assertTrue(first.is_obsolete())
         # Make sure dependencies were set correctly
         self.assertSetEqual(
             FirstModel._dependencies,
-            set([(ModelDefinition, second_model_def.pk)])
+            set([(ModelDefinition, second_model_def.pk)]),
         )
         self.assertSetEqual(
             SecondModel._dependencies,
-            set([(ModelDefinition, first_model_def.pk)])
+            set([(ModelDefinition, first_model_def.pk)]),
         )
         second.first = first
         self.assertRaisesMessage(
-            ValidationError, 'Cannot save an obsolete model', second.save
+            ValidationError, "Cannot save an obsolete model", second.save
         )
         second = SecondModel.objects.get()
         first = FirstModel.objects.get()
@@ -124,12 +129,17 @@ class ForeignKeyDefinitionTest(RelatedFieldDefinitionTestMixin,
 
     def test_recursive_relationship(self):
         fk = ForeignKeyDefinition.objects.create(
-            model_def=self.model_def, name='f1', null=True, blank=True,
-            to=self.model_def
+            model_def=self.model_def,
+            name="f1",
+            null=True,
+            blank=True,
+            to=self.model_def,
         )
         self.assertTrue(fk.is_recursive_relationship)
         Model = self.model_def.model_class()
-        self.assertEqual(get_remote_field_model(Model._meta.get_field('f1')), Model)
+        self.assertEqual(
+            get_remote_field_model(Model._meta.get_field("f1")), Model
+        )
         obj1 = Model.objects.create()
         obj2 = Model.objects.create(f1=obj1)
         obj1.f1 = obj2
@@ -137,21 +147,21 @@ class ForeignKeyDefinitionTest(RelatedFieldDefinitionTestMixin,
 
     def test_fixture_loading(self):
         with app_cache_restorer():
-            call_command('loaddata', 'test_fk_to_loading.json', verbosity=0)
+            call_command("loaddata", "test_fk_to_loading.json", verbosity=0)
         to_model_def = ModelDefinition.objects.get_by_natural_key(
-            'tests', 'tomodel'
+            "tests", "tomodel"
         )
         to_model_class = to_model_def.model_class()
         # Make sure the origin's model class was created
-        self.assertTrue(hasattr(to_model_class, 'froms'))
+        self.assertTrue(hasattr(to_model_class, "froms"))
         try:
             from_model_class = to_model_class.froms.field.model
         except AttributeError:
             from_model_class = to_model_class.froms.related.related_model
         try:
-            fk_field = from_model_class._meta.get_field('fk')
+            fk_field = from_model_class._meta.get_field("fk")
         except FieldDoesNotExist:
-            self.fail('The fk field should be created')
+            self.fail("The fk field should be created")
         to_model_class = to_model_def.model_class()
         self.assertEqual(get_remote_field_model(fk_field), to_model_class)
         to_instance = to_model_class.objects.create()
@@ -165,9 +175,11 @@ class ForeignKeyDefinitionTest(RelatedFieldDefinitionTestMixin,
 class ForeignKeyDefinitionOnDeleteTest(BaseModelDefinitionTestCase):
     def test_protect(self):
         ForeignKeyDefinition.objects.create(
-            model_def=self.model_def, name='f1', null=True,
+            model_def=self.model_def,
+            name="f1",
+            null=True,
             to=self.model_def.model_ct,
-            on_delete=ForeignKeyDefinition.ON_DELETE_PROTECT
+            on_delete=ForeignKeyDefinition.ON_DELETE_PROTECT,
         )
         Model = self.model_def.model_class()
         obj = Model.objects.create()
@@ -176,8 +188,10 @@ class ForeignKeyDefinitionOnDeleteTest(BaseModelDefinitionTestCase):
 
     def test_set_null(self):
         fk = ForeignKeyDefinition(
-            model_def=self.model_def, name='f1', to=self.model_def.model_ct,
-            on_delete=ForeignKeyDefinition.ON_DELETE_SET_NULL
+            model_def=self.model_def,
+            name="f1",
+            to=self.model_def.model_ct,
+            on_delete=ForeignKeyDefinition.ON_DELETE_SET_NULL,
         )
         self.assertRaises(ValidationError, fk.clean)
         fk.null = True
@@ -192,9 +206,11 @@ class ForeignKeyDefinitionOnDeleteTest(BaseModelDefinitionTestCase):
         Model = self.model_def.model_class()
         default = Model.objects.create().pk
         fk = ForeignKeyDefinition.objects.create(
-            model_def=self.model_def, name='f1', null=True,
+            model_def=self.model_def,
+            name="f1",
+            null=True,
             to=self.model_def.model_ct,
-            on_delete=ForeignKeyDefinition.ON_DELETE_SET_DEFAULT
+            on_delete=ForeignKeyDefinition.ON_DELETE_SET_DEFAULT,
         )
         self.assertRaises(ValidationError, fk.clean)
         fk.default = default
@@ -208,9 +224,11 @@ class ForeignKeyDefinitionOnDeleteTest(BaseModelDefinitionTestCase):
         Model = self.model_def.model_class()
         default = Model.objects.create().pk
         fk = ForeignKeyDefinition.objects.create(
-            model_def=self.model_def, name='f1', null=True,
+            model_def=self.model_def,
+            name="f1",
+            null=True,
             to=self.model_def.model_ct,
-            on_delete=ForeignKeyDefinition.ON_DELETE_SET_VALUE
+            on_delete=ForeignKeyDefinition.ON_DELETE_SET_VALUE,
         )
         self.assertRaises(ValidationError, fk.clean)
         fk.on_delete_set_value = default
@@ -225,14 +243,14 @@ class OneToOneFieldDefinitionTests(BaseModelDefinitionTestCase):
     def test_parent_link_to_mutable_model(self):
         first_model_def = self.model_def
         second_model_def = ModelDefinition.objects.create(
-            app_label='related',
-            object_name='SecondModel',
+            app_label="related",
+            object_name="SecondModel",
             bases=[BaseDefinition(base=first_model_def.model_class())],
             fields=[
                 OneToOneFieldDefinition(
-                    name='model',
+                    name="model",
                     to=first_model_def,
-                    related_name='second',
+                    related_name="second",
                     parent_link=True,
                 ),
             ],
@@ -244,21 +262,26 @@ class OneToOneFieldDefinitionTests(BaseModelDefinitionTestCase):
         self.assertEqual(first_model_instance.second, second_model_instance)
 
 
-@skip('Incomplete support for many to many field.')
-class ManyToManyFieldDefinitionTest(RelatedFieldDefinitionTestMixin,
-                                    BaseModelDefinitionTestCase):
+@skip("Incomplete support for many to many field.")
+class ManyToManyFieldDefinitionTest(
+    RelatedFieldDefinitionTestMixin, BaseModelDefinitionTestCase
+):
     field_definition_cls = ManyToManyFieldDefinition
 
     def setUp(self):
         self.field_values = (
             [ContentType.objects.get_for_model(ContentType)],
-            [ContentType.objects.get_for_model(ModelDefinition),
-             ContentType.objects.get_for_model(ContentType)]
+            [
+                ContentType.objects.get_for_model(ModelDefinition),
+                ContentType.objects.get_for_model(ContentType),
+            ],
         )
         super(ManyToManyFieldDefinitionTest, self).setUp()
 
-    def get_field_value(self, instance, name='field'):
-        value = super(RelatedFieldDefinitionTestMixin, self).get_field_value(instance, name)
+    def get_field_value(self, instance, name="field"):
+        value = super(RelatedFieldDefinitionTestMixin, self).get_field_value(
+            instance, name
+        )
         return list(value.all())
 
     def test_field_renaming(self):
@@ -270,13 +293,13 @@ class ManyToManyFieldDefinitionTest(RelatedFieldDefinitionTestMixin,
         instance = Model.objects.create()
         instance.field = value
 
-        self.field.name = 'renamed_field'
+        self.field.name = "renamed_field"
         self.field.save()
 
         instance = Model.objects.get()
         self.assertEqual(instance.renamed_field.all(), value)
 
-        self.assertFalse(hasattr(Model, 'field'))
+        self.assertFalse(hasattr(Model, "field"))
 
         instance = Model.objects.create()
         instance.renamed_field = value
@@ -298,7 +321,7 @@ class ManyToManyFieldDefinitionTest(RelatedFieldDefinitionTestMixin,
         pass
 
     def test_field_symmetrical(self):
-        m2m = ManyToManyFieldDefinition(model_def=self.model_def, name='objs')
+        m2m = ManyToManyFieldDefinition(model_def=self.model_def, name="objs")
         ct_ct = ContentType.objects.get_for_model(ContentType)
         m2m.to = ct_ct
 

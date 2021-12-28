@@ -14,18 +14,19 @@ from .utils import BaseModelDefinitionTestCase
 
 
 class TextFieldDefinitionTestMixin(FieldDefinitionTestMixin):
-    field_definition_category = _('Text')
+    field_definition_category = _("Text")
 
 
-class CharFieldDefinitionTest(TextFieldDefinitionTestMixin,
-                              BaseModelDefinitionTestCase):
+class CharFieldDefinitionTest(
+    TextFieldDefinitionTestMixin, BaseModelDefinitionTestCase
+):
     field_definition_cls = CharFieldDefinition
-    field_definition_init_kwargs = {'max_length': 255}
-    field_values = ('Raptor Jesus', 'Nirvana')
+    field_definition_init_kwargs = {"max_length": 255}
+    field_values = ("Raptor Jesus", "Nirvana")
 
     @skipUnless(
-        connection.settings_dict['ENGINE'] != 'django.db.backends.sqlite3',
-        "SQLite3 doesn't enforce CHAR length"
+        connection.settings_dict["ENGINE"] != "django.db.backends.sqlite3",
+        "SQLite3 doesn't enforce CHAR length",
     )
     def test_field_max_length(self):
         self.field.max_length = 24
@@ -33,11 +34,12 @@ class CharFieldDefinitionTest(TextFieldDefinitionTestMixin,
         Model = self.model_def.model_class()
         with self.assertRaises(DatabaseError):
             with transaction.atomic():
-                Model.objects.create(field='Simon' * 5)
+                Model.objects.create(field="Simon" * 5)
 
 
-class TextFieldDefinitionTest(TextFieldDefinitionTestMixin,
-                              BaseModelDefinitionTestCase):
+class TextFieldDefinitionTest(
+    TextFieldDefinitionTestMixin, BaseModelDefinitionTestCase
+):
     field_definition_cls = TextFieldDefinition
     field_values = (
         """

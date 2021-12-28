@@ -9,22 +9,39 @@ from django.db import migrations, models
 class CreateConcreteModelFromProxy(migrations.CreateModel):
     def state_forwards(self, app_label, state):
         state.remove_model(app_label, self.name_lower)
-        super(CreateConcreteModelFromProxy, self).state_forwards(app_label, state)
+        super(CreateConcreteModelFromProxy, self).state_forwards(
+            app_label, state
+        )
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('related', '0002_update_field_defs_app_label'),
+        ("related", "0002_update_field_defs_app_label"),
     ]
 
     operations = [
         CreateConcreteModelFromProxy(
-            name='OneToOneFieldDefinition',
+            name="OneToOneFieldDefinition",
             fields=[
-                ('foreignkeydefinition_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, serialize=False, to='related.ForeignKeyDefinition')),
-                ('parent_link', models.BooleanField(default=False, verbose_name='parent link')),
+                (
+                    "foreignkeydefinition_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        serialize=False,
+                        to="related.ForeignKeyDefinition",
+                    ),
+                ),
+                (
+                    "parent_link",
+                    models.BooleanField(
+                        default=False, verbose_name="parent link"
+                    ),
+                ),
             ],
-            bases=('related.foreignkeydefinition',),
+            bases=("related.foreignkeydefinition",),
         ),
     ]

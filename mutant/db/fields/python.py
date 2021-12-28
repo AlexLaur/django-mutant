@@ -33,10 +33,10 @@ class RegExpStringField(CharField):
 
 class PythonIdentifierField(CharField):
     default_validators = [validate_python_identifier]
-    description = _('Python identifier')
+    description = _("Python identifier")
 
     def __init__(self, *args, **kwargs):
-        defaults = {'max_length': 255}
+        defaults = {"max_length": 255}
         defaults.update(kwargs)
         super(PythonIdentifierField, self).__init__(*args, **defaults)
 

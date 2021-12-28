@@ -26,7 +26,7 @@ class DumpDataTestCase(DataCommandTestCase):
         # actually testing it's correctly loaded.
         output = StringIO()
         remove_from_app_cache(self.model_cls)
-        call_command('dumpdata', str(self.model_def), stdout=output)
+        call_command("dumpdata", str(self.model_def), stdout=output)
         output.seek(0)
         return json.load(output)
 
@@ -37,11 +37,14 @@ class DumpDataTestCase(DataCommandTestCase):
         self.assertEqual(self.dump_model_data(), [])
         instance = self.model_cls.objects.create()
         self.assertEqual(
-            self.dump_model_data(), [{
-                'pk': instance.pk,
-                'model': str(self.model_def).lower(),
-                'fields': {}
-            }]
+            self.dump_model_data(),
+            [
+                {
+                    "pk": instance.pk,
+                    "model": str(self.model_def).lower(),
+                    "fields": {},
+                }
+            ],
         )
 
 
@@ -70,10 +73,10 @@ class LoadDataTestCase(DataCommandTestCase):
         # Make sure to remove the model from the app cache because we're
         # actually testing it's correctly loaded.
         remove_from_app_cache(self.model_cls)
-        with NamedTemporaryFile(suffix='.json') as stream:
+        with NamedTemporaryFile(suffix=".json") as stream:
             self.serializer.serialize([instance], stream=BytesWritter(stream))
             stream.seek(0)
-            call_command('loaddata', stream.name, stdout=StringIO())
+            call_command("loaddata", stream.name, stdout=StringIO())
         self.assertTrue(self.model_cls.objects.filter(pk=instance.pk).exists())
 
     def test_invalid_model_idenfitier_raises(self):
@@ -81,12 +84,12 @@ class LoadDataTestCase(DataCommandTestCase):
         Makes sure an invalid model identifier raises the correct exception.
         """
         instance = self.model_cls(pk=1)
-        with NamedTemporaryFile(suffix='.json') as stream:
+        with NamedTemporaryFile(suffix=".json") as stream:
             self.serializer.serialize([instance], stream=BytesWritter(stream))
             stream.seek(0)
             self.model_def.delete()
             with self.assertRaisesMessage(
-                    DeserializationError, "Invalid model identifier: 'mutant.model'"):
-                call_command(
-                    'loaddata', stream.name, stdout=StringIO()
-                )
+                DeserializationError,
+                "Invalid model identifier: 'mutant.model'",
+            ):
+                call_command("loaddata", stream.name, stdout=StringIO())

@@ -7,26 +7,24 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('mutant', '0001_initial'),
+        ("mutant", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='BooleanFieldDefinition',
-            fields=[
-            ],
+            name="BooleanFieldDefinition",
+            fields=[],
             options={
-                'proxy': True,
+                "proxy": True,
             },
-            bases=('mutant.fielddefinition',),
+            bases=("mutant.fielddefinition",),
         ),
         migrations.CreateModel(
-            name='NullBooleanFieldDefinition',
-            fields=[
-            ],
+            name="NullBooleanFieldDefinition",
+            fields=[],
             options={
-                'proxy': True,
+                "proxy": True,
             },
-            bases=('mutant.fielddefinition',),
+            bases=("mutant.fielddefinition",),
         ),
     ]

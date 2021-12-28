@@ -13,7 +13,10 @@ def connections_can_rollback_ddl():
     """
     Returns True if all implied connections have DDL transactions support.
     """
-    return all(connection.features.can_rollback_ddl for connection in connections.all())
+    return all(
+        connection.features.can_rollback_ddl
+        for connection in connections.all()
+    )
 
 
 class DDLTestCase(TestCase):
@@ -21,6 +24,7 @@ class DDLTestCase(TestCase):
     A class that behaves like `TestCase` if all connections support DDL
     transactions or like `TransactionTestCase` if it's not the case.
     """
+
     manual_transaction = False
 
     @classmethod
@@ -82,15 +86,18 @@ class FieldDefinitionTestMixin(object):
         super(FieldDefinitionTestMixin, cls).setUpTestData()
         with cls.assertChecksumChange():
             cls.field_pk = cls.field_definition_cls._default_manager.create(
-                model_def_id=cls.model_def_pk, name='field',
+                model_def_id=cls.model_def_pk,
+                name="field",
                 **cls.field_definition_init_kwargs
             ).pk
 
     def setUp(self):
         super(FieldDefinitionTestMixin, self).setUp()
-        self.field = self.field_definition_cls._default_manager.get(pk=self.field_pk)
+        self.field = self.field_definition_cls._default_manager.get(
+            pk=self.field_pk
+        )
 
-    def get_field_value(self, instance, name='field'):
+    def get_field_value(self, instance, name="field"):
         return getattr(instance, name)
 
     def prepare_default_value(self, value):
@@ -120,10 +127,11 @@ class FieldDefinitionTestMixin(object):
         # Add the field with a default.
         create_default = self.prepare_default_value(field_value)
         options = dict(**self.field_definition_init_kwargs)
-        options['default'] = create_default
+        options["default"] = create_default
         with self.assertChecksumChange():
             self.field_definition_cls._default_manager.create_with_default(
-                model_def=self.model_def, name='field_created_with_default',
+                model_def=self.model_def,
+                name="field_created_with_default",
                 **options
             )
         created_value = self.prepare_default_value(
@@ -149,24 +157,26 @@ class FieldDefinitionTestMixin(object):
         # Renaming a field should update its column name
         model_class.objects.create(field=value)
         opts = model_class._meta
-        original_column_name = opts.get_field('field').get_attname_column()[1]
+        original_column_name = opts.get_field("field").get_attname_column()[1]
         with self.assertChecksumChange():
-            self.field.name = 'renamed_field'
+            self.field.name = "renamed_field"
             self.field.save()
         opts = model_class._meta
-        new_column_name = opts.get_field('renamed_field').get_attname_column()[1]
+        new_column_name = opts.get_field("renamed_field").get_attname_column()[
+            1
+        ]
         self.assertModelTablesColumnDoesntExists(
             model_class, original_column_name
         )
-        self.assertModelTablesColumnExists(
-            model_class, new_column_name
-        )
+        self.assertModelTablesColumnExists(model_class, new_column_name)
         # Old data should be accessible by the new field name
         instance = model_class.objects.get()
-        self.assertEqual(self.get_field_value(instance, 'renamed_field'), value)
+        self.assertEqual(
+            self.get_field_value(instance, "renamed_field"), value
+        )
         # The old field shouldn't be accessible anymore
         msg = "Model() got an unexpected keyword argument 'field'"
-        #msg = "'field' is an invalid keyword argument for this function"
+        # msg = "'field' is an invalid keyword argument for this function"
         self.assertRaisesMessage(TypeError, msg, model_class, field=value)
         # It should be possible to create objects using the new field name
         model_class.objects.create(renamed_field=value)
@@ -177,10 +187,12 @@ class FieldDefinitionTestMixin(object):
         model_class.objects.create(field=value)
         # Deleting a field should delete the associated column
         opts = model_class._meta
-        field_column_name = opts.get_field('field').get_attname_column()[1]
+        field_column_name = opts.get_field("field").get_attname_column()[1]
         with self.assertChecksumChange():
             self.field.delete()
-        self.assertModelTablesColumnDoesntExists(model_class, field_column_name)
+        self.assertModelTablesColumnDoesntExists(
+            model_class, field_column_name
+        )
         # The deleted field shouldn't be accessible anymore
         msg = "Model() got an unexpected keyword argument 'field'"
         # msg = "'field' is an invalid keyword argument for this function"
@@ -200,17 +212,19 @@ class FieldDefinitionTestMixin(object):
         except IntegrityError:
             pass
         else:
-            self.fail("One shouldn't be able to save duplicate entries in a unique field")
+            self.fail(
+                "One shouldn't be able to save duplicate entries in a unique field"
+            )
 
     def test_field_cloning(self):
         with self.assertChecksumChange():
             clone = self.field.clone()
-            clone.name = 'field_clone'
+            clone.name = "field_clone"
             clone.model_def = self.model_def
             clone.save(force_insert=True)
 
     def test_field_definition_category(self):
         self.assertEqual(
             self.field_definition_cls.get_field_category(),
-            self.field_definition_category
+            self.field_definition_category,
         )

@@ -29,9 +29,8 @@ class MutableModel(models.Model):
 
     @classmethod
     def is_obsolete(cls):
-        return (
-            cls._is_obsolete or
-            cls._checksum != state_handler.get_checksum(cls._definition[1])
+        return cls._is_obsolete or cls._checksum != state_handler.get_checksum(
+            cls._definition[1]
         )
 
     @classmethod
@@ -44,20 +43,34 @@ class MutableModel(models.Model):
         for _name, field in model_state.fields.items():
             related_model_reference = get_remote_field_model(field)
             if related_model_reference:
-                related_model = cls._meta.apps.get_model(related_model_reference)
+                related_model = cls._meta.apps.get_model(
+                    related_model_reference
+                )
                 if issubclass(related_model, MutableModel):
-                    related_model_state = related_model.get_model_state(exclude_rels=True)
+                    related_model_state = related_model.get_model_state(
+                        exclude_rels=True
+                    )
                 else:
-                    related_model_state = ModelState.from_model(related_model, exclude_rels=True)
-                model_states[related_model_state.app_label, related_model_state.name] = related_model_state
+                    related_model_state = ModelState.from_model(
+                        related_model, exclude_rels=True
+                    )
+                model_states[
+                    related_model_state.app_label, related_model_state.name
+                ] = related_model_state
                 for base in related_model_state.bases:
                     if isinstance(base, string_types):
                         base_model = cls._meta.apps.get_model(base)
                         if issubclass(base_model, MutableModel):
-                            base_model_state = base_model.get_model_state(exclude_rels=True)
+                            base_model_state = base_model.get_model_state(
+                                exclude_rels=True
+                            )
                         else:
-                            base_model_state = ModelState.from_model(base_model, exclude_rels=True)
-                        model_states[base_model_state.app_label, base_model_state.name] = base_model_state
+                            base_model_state = ModelState.from_model(
+                                base_model, exclude_rels=True
+                            )
+                        model_states[
+                            base_model_state.app_label, base_model_state.name
+                        ] = base_model_state
         return list(model_states.values())
 
     @classmethod
@@ -73,7 +86,8 @@ class MutableModel(models.Model):
         cls._is_obsolete = True
         logger.debug(
             "Marking model %s and it dependencies (%s) as obsolete.",
-            cls, cls._dependencies
+            cls,
+            cls._dependencies,
         )
         if origin is None:
             origin = cls._definition
@@ -89,17 +103,17 @@ class MutableModel(models.Model):
 
     def clean(self):
         if self.is_obsolete():
-            raise ValidationError('Obsolete definition')
+            raise ValidationError("Obsolete definition")
         return super(MutableModel, self).clean()
 
     def save(self, *args, **kwargs):
         if self.is_obsolete():
-            msg = _('Cannot save an obsolete model')
+            msg = _("Cannot save an obsolete model")
             raise ValidationError(msg)
         return super(MutableModel, self).save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         if self.is_obsolete():
-            msg = _('Cannot delete an obsolete model')
+            msg = _("Cannot delete an obsolete model")
             raise ValidationError(msg)
         return super(MutableModel, self).delete(*args, **kwargs)

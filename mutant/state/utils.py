@@ -7,5 +7,5 @@ class HandlerProxy(object):
     def __getattribute__(self, name):
         if not apps.apps_ready:
             raise AttributeError
-        handler = apps.get_app_config('mutant').state_handler
+        handler = apps.get_app_config("mutant").state_handler
         return getattr(handler, name)

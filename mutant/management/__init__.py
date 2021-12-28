@@ -27,12 +27,15 @@ def nonraw_instance(receiver):
     A signal receiver decorator that fetch the complete instance from db when
     it's passed as raw
     """
+
     @wraps(receiver)
     def wrapper(sender, instance, raw, using, **kwargs):
         if raw:
             instance = sender._default_manager.using(using).get(pk=instance.pk)
-        return receiver(sender=sender, raw=raw, instance=instance, using=using,
-                        **kwargs)
+        return receiver(
+            sender=sender, raw=raw, instance=instance, using=using, **kwargs
+        )
+
     return wrapper
 
 
@@ -43,10 +46,13 @@ def model_definition_post_save(sender, instance, created, **kwargs):
     db_table = opts.db_table
     if created:
         primary_key = opts.pk
-        fields = [(field.get_attname_column()[1], field) for field in opts.fields
-                  if field is not primary_key]
+        fields = [
+            (field.get_attname_column()[1], field)
+            for field in opts.fields
+            if field is not primary_key
+        ]
         try:
-            extra_fields = getattr(instance._state, '_create_extra_fields')
+            extra_fields = getattr(instance._state, "_create_extra_fields")
         except AttributeError:
             pass
         else:
@@ -55,31 +61,36 @@ def model_definition_post_save(sender, instance, created, **kwargs):
                 if field.primary_key:
                     assert isinstance(primary_key, models.AutoField)
                     primary_key = field
-                elif (remote_field and remote_field.parent_link and
-                      isinstance(primary_key, models.AutoField)):
+                elif (
+                    remote_field
+                    and remote_field.parent_link
+                    and isinstance(primary_key, models.AutoField)
+                ):
                     field.primary_key = True
                     primary_key = field
                 else:
                     fields.append((column, field))
-            delattr(instance._state, '_create_extra_fields')
+            delattr(instance._state, "_create_extra_fields")
         fields.insert(0, (primary_key.get_attname_column()[1], primary_key))
         try:
-            delayed_save = getattr(instance._state, '_create_delayed_save')
+            delayed_save = getattr(instance._state, "_create_delayed_save")
         except AttributeError:
             pass
         else:
             for obj in delayed_save:
                 obj.model_def = instance
                 obj.save(force_insert=True, force_create_model_class=False)
-            delattr(instance._state, '_create_delayed_save')
+            delattr(instance._state, "_create_delayed_save")
         model_class = instance.model_class(force_create=True)
-        perform_ddl('create_model', model_class)
+        perform_ddl("create_model", model_class)
     else:
         old_model_class = instance._model_class
         if old_model_class:
             old_db_table = old_model_class._meta.db_table
             if db_table != old_db_table:
-                perform_ddl('alter_db_table', model_class, old_db_table, db_table)
+                perform_ddl(
+                    "alter_db_table", model_class, old_db_table, db_table
+                )
             ContentType.objects.clear_cache()
     instance._model_class = model_class.model
 
@@ -93,8 +104,8 @@ def model_definition_pre_delete(sender, instance, **kwargs):
 
 
 def model_definition_post_delete(sender, instance, **kwargs):
-    model_class, pk = popattr(instance._state, '_deletion')
-    perform_ddl('delete_model', model_class)
+    model_class, pk = popattr(instance._state, "_deletion")
+    perform_ddl("delete_model", model_class)
     remove_from_app_cache(model_class)
     model_class.mark_as_obsolete()
     state_handler.clear_checksum(pk)
@@ -108,7 +119,7 @@ def base_definition_post_save(sender, instance, created, raw, **kwargs):
         model_class = instance.model_def.model_class().render_state()
         opts = model_class._meta
         if created:
-            add_columns = popattr(instance._state, '_add_columns', True)
+            add_columns = popattr(instance._state, "_add_columns", True)
             if add_columns:
                 auto_pk = isinstance(opts.pk, models.AutoField)
                 for field in declared_fields:
@@ -117,17 +128,29 @@ def base_definition_post_save(sender, instance, created, raw, **kwargs):
                     if auto_pk and remote_field and remote_field.parent_link:
                         auto_pk = False
                         field.primary_key = True
-                        perform_ddl('alter_field', model_class, opts.pk, field, strict=True)
+                        perform_ddl(
+                            "alter_field",
+                            model_class,
+                            opts.pk,
+                            field,
+                            strict=True,
+                        )
                     else:
-                        perform_ddl('add_field', model_class, field)
+                        perform_ddl("add_field", model_class, field)
         else:
             for field in declared_fields:
                 try:
                     old_field = opts.get_field(field.name)
                 except FieldDoesNotExist:
-                    perform_ddl('add_field', model_class, field)
+                    perform_ddl("add_field", model_class, field)
                 else:
-                    perform_ddl('alter_field', model_class, old_field, field, strict=True)
+                    perform_ddl(
+                        "alter_field",
+                        model_class,
+                        old_field,
+                        field,
+                        strict=True,
+                    )
 
 
 def base_definition_pre_delete(sender, instance, **kwargs):
@@ -137,35 +160,40 @@ def base_definition_pre_delete(sender, instance, **kwargs):
     """
     # see CASCADE_MARK_ORIGIN's docstring
     cascade_deletion_origin = popattr(
-        instance._state, '_cascade_deletion_origin', None
+        instance._state, "_cascade_deletion_origin", None
     )
-    if cascade_deletion_origin == 'model_def':
+    if cascade_deletion_origin == "model_def":
         return
-    if (instance.base and issubclass(instance.base, models.Model) and
-            instance.base._meta.abstract):
-        instance._state._deletion = instance.model_def.model_class().render_state()
+    if (
+        instance.base
+        and issubclass(instance.base, models.Model)
+        and instance.base._meta.abstract
+    ):
+        instance._state._deletion = (
+            instance.model_def.model_class().render_state()
+        )
 
 
 def base_definition_post_delete(sender, instance, **kwargs):
     """
     Make sure to delete fields inherited from an abstract model base.
     """
-    if hasattr(instance._state, '_deletion'):
+    if hasattr(instance._state, "_deletion"):
         # Make sure to flatten abstract bases since Django
         # migrations can't deal with them.
-        model = popattr(instance._state, '_deletion')
+        model = popattr(instance._state, "_deletion")
         for field in instance.base._meta.fields:
-            perform_ddl('remove_field', model, field)
+            perform_ddl("remove_field", model, field)
 
 
 def unique_together_field_defs_changed(instance, action, model, **kwargs):
     model_class = instance.model_def.model_class()
-    if action.startswith('post_'):
+    if action.startswith("post_"):
         perform_ddl(
-            'alter_unique_together',
+            "alter_unique_together",
             model_class,
             model_class._meta.unique_together,
-            instance.model_def.get_state().options.get('unique_together', [])
+            instance.model_def.get_state().options.get("unique_together", []),
         )
         model_class.mark_as_obsolete()
 
@@ -181,7 +209,9 @@ def raw_field_definition_proxy_post_save(sender, instance, raw, **kwargs):
         opts = model_class._meta
         if opts.proxy and opts.concrete_model is sender:
             field_definition_post_save(
-                sender=model_class, instance=instance.type_cast(), raw=raw,
+                sender=model_class,
+                instance=instance.type_cast(),
+                raw=raw,
                 **kwargs
             )
 
@@ -196,20 +226,21 @@ def field_definition_post_save(sender, instance, created, raw, **kwargs):
     field = instance.construct_for_migrate()
     field.model = model_class
     if created:
-        if hasattr(instance._state, '_creation_default_value'):
+        if hasattr(instance._state, "_creation_default_value"):
             field.default = instance._state._creation_default_value
-            delattr(instance._state, '_creation_default_value')
-        add_column = popattr(instance._state, '_add_column', True)
+            delattr(instance._state, "_creation_default_value")
+        add_column = popattr(instance._state, "_add_column", True)
         if add_column:
-            perform_ddl('add_field', model_class, field)
+            perform_ddl("add_field", model_class, field)
             # If the field definition is raw we must re-create the model class
             # since ModelDefinitionAttribute.save won't be called
             if raw:
                 instance.model_def.model_class().mark_as_obsolete()
     else:
         old_field = instance._state._pre_save_field
-        delattr(instance._state, '_pre_save_field')
-        perform_ddl('alter_field', model_class, old_field, field, strict=True)
+        delattr(instance._state, "_pre_save_field")
+        perform_ddl("alter_field", model_class, old_field, field, strict=True)
+
 
 FIELD_DEFINITION_POST_SAVE_UID = "mutant.management.%s_post_save"
 
@@ -217,9 +248,9 @@ FIELD_DEFINITION_POST_SAVE_UID = "mutant.management.%s_post_save"
 def field_definition_pre_delete(sender, instance, **kwargs):
     # see CASCADE_MARK_ORIGIN's docstring
     cascade_deletion_origin = popattr(
-        instance._state, '_cascade_deletion_origin', None
+        instance._state, "_cascade_deletion_origin", None
     )
-    if cascade_deletion_origin == 'model_def':
+    if cascade_deletion_origin == "model_def":
         return
     model_class = instance.model_def.model_class()
     opts = model_class._meta
@@ -228,10 +259,10 @@ def field_definition_pre_delete(sender, instance, **kwargs):
 
 
 def field_definition_post_delete(sender, instance, **kwargs):
-    if hasattr(instance._state, '_deletion'):
-        model, field = popattr(instance._state, '_deletion')
+    if hasattr(instance._state, "_deletion"):
+        model, field = popattr(instance._state, "_deletion")
         if field.primary_key:
-            primary_key = models.AutoField(name='id', primary_key=True)
-            perform_ddl('alter_field', model, field, primary_key, strict=True)
+            primary_key = models.AutoField(name="id", primary_key=True)
+            perform_ddl("alter_field", model, field, primary_key, strict=True)
         else:
-            perform_ddl('remove_field', model, field)
+            perform_ddl("remove_field", model, field)

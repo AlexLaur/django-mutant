@@ -27,13 +27,17 @@ class PubSubStateHandler(MemoryStateHandler):
         if checksum is None:
             super(PubSubStateHandler, self).clear_checksum(definition_pk)
         else:
-            super(PubSubStateHandler, self).set_checksum(definition_pk, checksum)
+            super(PubSubStateHandler, self).set_checksum(
+                definition_pk, checksum
+            )
 
     def set_checksum(self, definition_pk, checksum):
         timestamp = time.time()
         with self.lock:
             self.timestamps[definition_pk] = timestamp
-            super(PubSubStateHandler, self).set_checksum(definition_pk, checksum)
+            super(PubSubStateHandler, self).set_checksum(
+                definition_pk, checksum
+            )
         self.engine.publish(definition_pk, checksum, timestamp)
 
     def clear_checksum(self, definition_pk):

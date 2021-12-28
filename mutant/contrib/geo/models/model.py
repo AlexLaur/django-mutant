@@ -11,6 +11,7 @@ class GeoModel(models.Model):
     A model to be used as a BaseDefinition on ModelDefinition instance with
     GeometryFieldDefinition instances.
     """
+
     objects = GeoManager()
 
     class Meta:

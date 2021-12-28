@@ -15,15 +15,16 @@ MODULE_PATH = os.path.abspath(sys.modules[__name__].__file__)
 MODELS_MODULE_PATH = os.path.abspath(models.__file__)
 
 
-class FilePathFieldDefinitionTest(testcases.FieldDefinitionTestMixin,
-                                  BaseModelDefinitionTestCase):
-    field_definition_category = _('File')
+class FilePathFieldDefinitionTest(
+    testcases.FieldDefinitionTestMixin, BaseModelDefinitionTestCase
+):
+    field_definition_category = _("File")
     field_definition_cls = models.FilePathFieldDefinition
-    field_definition_init_kwargs = {'path': PACKAGE_PATH}
+    field_definition_init_kwargs = {"path": PACKAGE_PATH}
     field_values = (MODULE_PATH, MODELS_MODULE_PATH)
 
     def test_formfield(self):
-        self.field.match = r'\.pyc?$'
+        self.field.match = r"\.pyc?$"
         self.field.save()
         formfield = self.field.construct().formfield()
         self.assertTrue(formfield.valid_value(MODULE_PATH))

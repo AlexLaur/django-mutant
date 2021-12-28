@@ -17,10 +17,11 @@ def _get_model(model_identifier):
     except DeserializationError as e:
         try:
             model_def = ModelDefinition.objects.get_by_natural_key(
-                *model_identifier.split('.')
+                *model_identifier.split(".")
             )
         except ModelDefinition.DoesNotExist:
             raise e
         return model_def.model_class()
+
 
 python_serializer._get_model = _get_model

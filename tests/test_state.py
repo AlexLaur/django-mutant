@@ -24,9 +24,11 @@ except ImportError:
 class StateHandlerTestMixin(object):
     def setUp(self):
         super(StateHandlerTestMixin, self).setUp()
-        self.mutant_config = apps.get_app_config('mutant')
+        self.mutant_config = apps.get_app_config("mutant")
         self._state_handler = self.mutant_config.state_handler
-        self.mutant_config.state_handler = import_string(self.handler_path)(**self.handler_options)
+        self.mutant_config.state_handler = import_string(self.handler_path)(
+            **self.handler_options
+        )
 
     def tearDown(self):
         self.mutant_config.state_handler = self._state_handler
@@ -34,7 +36,7 @@ class StateHandlerTestMixin(object):
 
     def test_basic_interaction(self):
         self.assertIsNone(state_handler.get_checksum(0))
-        checksum = '397fc6229a59429ee114441b780fe7a2'
+        checksum = "397fc6229a59429ee114441b780fe7a2"
         state_handler.set_checksum(0, checksum)
         self.assertEqual(state_handler.get_checksum(0), checksum)
         state_handler.clear_checksum(0)
@@ -55,12 +57,12 @@ class ChecksumGetter(Thread):
 
 
 class MemoryHandlerTest(StateHandlerTestMixin, BaseModelDefinitionTestCase):
-    handler_path = 'mutant.state.handlers.memory.MemoryStateHandler'
+    handler_path = "mutant.state.handlers.memory.MemoryStateHandler"
     handler_options = {}
 
     def test_checksum_persistence(self):
         """Make sure checksums are shared between threads."""
-        checksum = '397fc6229a59429ee114441b780fe7a2'
+        checksum = "397fc6229a59429ee114441b780fe7a2"
         state_handler.set_checksum(0, checksum)
         getter = ChecksumGetter(0)
         getter.start()
@@ -74,7 +76,7 @@ class MemoryHandlerTest(StateHandlerTestMixin, BaseModelDefinitionTestCase):
 
 
 class CacheHandlerTest(StateHandlerTestMixin, BaseModelDefinitionTestCase):
-    handler_path = 'mutant.state.handlers.cache.CacheStateHandler'
+    handler_path = "mutant.state.handlers.cache.CacheStateHandler"
     handler_options = {}
 
 
@@ -98,32 +100,36 @@ class MockEngine(pubsub_engines.BaseEngine):
 
 
 class PubsubHandlerTest(MemoryHandlerTest):
-    handler_path = 'mutant.state.handlers.pubsub.PubSubStateHandler'
-    handler_options = {'engine': ('tests.test_state.MockEngine', {})}
+    handler_path = "mutant.state.handlers.pubsub.PubSubStateHandler"
+    handler_options = {"engine": ("tests.test_state.MockEngine", {})}
 
     def tearDown(self):
         state_handler.engine.stop()
         super(PubsubHandlerTest, self).tearDown()
 
     def test_flush(self):
-        state_handler.set_checksum(0, '6818bab4da85a3a138cdfa35cfc7a64f')
-        self.assertEqual(state_handler.get_checksum(0), '6818bab4da85a3a138cdfa35cfc7a64f')
+        state_handler.set_checksum(0, "6818bab4da85a3a138cdfa35cfc7a64f")
+        self.assertEqual(
+            state_handler.get_checksum(0), "6818bab4da85a3a138cdfa35cfc7a64f"
+        )
         state_handler.flush()
         self.assertEqual(state_handler.checksums, {})
         self.assertNotEqual(state_handler.timestamps, {})
 
     def test_receive(self):
-        state_handler.set_checksum(0, '6818bab4da85a3a138cdfa35cfc7a64f')
+        state_handler.set_checksum(0, "6818bab4da85a3a138cdfa35cfc7a64f")
         timestamp = state_handler.timestamps[0]
-        state_handler.receive(0, 'before', timestamp - 1)
-        self.assertEqual(state_handler.get_checksum(0), '6818bab4da85a3a138cdfa35cfc7a64f')
-        state_handler.receive(0, 'before', timestamp + 1)
-        self.assertEqual(state_handler.get_checksum(0), 'before')
+        state_handler.receive(0, "before", timestamp - 1)
+        self.assertEqual(
+            state_handler.get_checksum(0), "6818bab4da85a3a138cdfa35cfc7a64f"
+        )
+        state_handler.receive(0, "before", timestamp + 1)
+        self.assertEqual(state_handler.get_checksum(0), "before")
         state_handler.receive(0, None, timestamp + 1)
         self.assertIsNone(state_handler.get_checksum(0))
 
 
-@skipUnless(redis, 'This state handler requires redis to be installed.')
+@skipUnless(redis, "This state handler requires redis to be installed.")
 class RedisPubSubHandlerEngineTests(LoggingTestMixin, SimpleTestCase):
     class TestRedis(pubsub_engines.Redis):
         initialized = False
@@ -142,7 +148,9 @@ class RedisPubSubHandlerEngineTests(LoggingTestMixin, SimpleTestCase):
         def collect_messages(*args):
             messages.append(args)
 
-        engine = self.TestRedis(initialize, collect_messages, channel=str(self))
+        engine = self.TestRedis(
+            initialize, collect_messages, channel=str(self)
+        )
         engine.exception = redis.TimeoutError
         with self.record(pubsub_engines.logger) as records:
             engine.start()
@@ -152,15 +160,15 @@ class RedisPubSubHandlerEngineTests(LoggingTestMixin, SimpleTestCase):
         self.assertEqual(len(records), 3)
         first_record, second_record, third_record = records
         self.assertEqual(first_record.levelno, logging.WARNING)
-        self.assertEqual(first_record.msg, 'Unexpected connection timeout.')
+        self.assertEqual(first_record.msg, "Unexpected connection timeout.")
         self.assertEqual(second_record.levelno, logging.INFO)
-        self.assertEqual(second_record.msg, 'Attempting to reconnect.')
+        self.assertEqual(second_record.msg, "Attempting to reconnect.")
         self.assertEqual(third_record.levelno, logging.INFO)
-        self.assertEqual(third_record.msg, 'Successfully reconnected.')
-        engine.publish('foo', 'bar')
+        self.assertEqual(third_record.msg, "Successfully reconnected.")
+        engine.publish("foo", "bar")
         while len(messages) == 0:
             time.sleep(0.1)
-        self.assertEqual(messages, [('foo', 'bar')])
+        self.assertEqual(messages, [("foo", "bar")])
         engine.stop()
 
     def test_disconnect_reconnects(self):
@@ -172,7 +180,9 @@ class RedisPubSubHandlerEngineTests(LoggingTestMixin, SimpleTestCase):
         def collect_messages(*args):
             messages.append(args)
 
-        engine = self.TestRedis(initialize, collect_messages, channel=str(self))
+        engine = self.TestRedis(
+            initialize, collect_messages, channel=str(self)
+        )
         engine.exception = redis.ConnectionError
         with self.record(pubsub_engines.logger) as records:
             engine.start()
@@ -182,13 +192,13 @@ class RedisPubSubHandlerEngineTests(LoggingTestMixin, SimpleTestCase):
         self.assertEqual(len(records), 3)
         first_record, second_record, third_record = records
         self.assertEqual(first_record.levelno, logging.WARNING)
-        self.assertEqual(first_record.msg, 'Connection error.')
+        self.assertEqual(first_record.msg, "Connection error.")
         self.assertEqual(second_record.levelno, logging.INFO)
-        self.assertEqual(second_record.msg, 'Attempting to reconnect.')
+        self.assertEqual(second_record.msg, "Attempting to reconnect.")
         self.assertEqual(third_record.levelno, logging.INFO)
-        self.assertEqual(third_record.msg, 'Successfully reconnected.')
-        engine.publish('foo', 'bar')
+        self.assertEqual(third_record.msg, "Successfully reconnected.")
+        engine.publish("foo", "bar")
         while len(messages) == 0:
             time.sleep(0.1)
-        self.assertEqual(messages, [('foo', 'bar')])
+        self.assertEqual(messages, [("foo", "bar")])
         engine.stop()
